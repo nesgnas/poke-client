@@ -1,0 +1,31 @@
+{
+  "user": [
+    {
+      "connAdd": "[::1]:58065",
+      "listPokemon": [],
+      "maxValue": "",
+      "positionX": 952,
+      "positionY": 30,
+      "spaceLeft": "",
+      "uID": "a9e48d0b-b2f9-4b7d-a6d4-2a863ae63eb2"
+    },
+    {
+      "connAdd": "[::1]:58077",
+      "listPokemon": [],
+      "maxValue": "",
+      "positionX": 135,
+      "positionY": 501,
+      "spaceLeft": "",
+      "uID": "b3e5cea7-fd98-4924-a31c-4d6421898070"
+    },
+    {
+      "connAdd": "[::1]:58105",
+      "listPokemon": [],
+      "maxValue": "",
+      "positionX": 154,
+      "positionY": 975,
+      "spaceLeft": "",
+      "uID": "77dff782-006e-4920-9c90-c7bf7e2961e4"
+    }
+  ]
+}
