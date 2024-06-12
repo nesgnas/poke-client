@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/dialog"
 	"golang.org/x/exp/rand"
 	"image/color"
 	"os"
 	"time"
 
-	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
@@ -29,7 +29,6 @@ const (
 )
 
 var (
-	playerX, playerY int
 	playerRect       *canvas.Rectangle
 	enemyRect        []Enemy
 	scrollContainer  *container.Scroll
@@ -49,6 +48,9 @@ type Enemy struct {
 }
 
 func main() {
+
+	go connectionWorld.ConnecWorld()
+
 	OnBattle = false
 	// Read the initial map from file
 	mapData, err := readMap("map.txt")
@@ -68,13 +70,14 @@ func main() {
 	currentMapHeight = maxMapH
 
 	// Set initial player position
-	playerX, playerY = 1, 1
+
+	connectionWorld.PlayerX, connectionWorld.PlayerY = 2, 2
 
 	// Create the initial grid
 	createGrid(currentMapWidth, currentMapHeight)
 
 	// Create a label for displaying coordinates
-	coordsLabel = widget.NewLabel(fmt.Sprintf("Coordinates: (%d, %d)", playerX, playerY))
+	coordsLabel = widget.NewLabel(fmt.Sprintf("Coordinates: (%d, %d)", connectionWorld.PlayerX, connectionWorld.PlayerY))
 
 	// Set up key event handling
 	w.Canvas().SetOnTypedKey(func(key *fyne.KeyEvent) {
@@ -95,7 +98,6 @@ func main() {
 	w.Show()
 
 	// Run the main Goroutine
-	go connectionWorld.ConnecWorld()
 
 	a.Run()
 }
@@ -126,7 +128,7 @@ func createGrid(width, height int) {
 
 	// Create a grid layout
 	grid = container.New(layout.NewGridLayout(width), rectangles...)
-	grid.Objects[playerY*width+playerX] = playerRect
+	grid.Objects[connectionWorld.PlayerY*width+connectionWorld.PlayerX] = playerRect
 
 	// Add enemies to the grid
 	//addEnemies()
@@ -136,7 +138,7 @@ func createGrid(width, height int) {
 	scrollContainer.SetMinSize(fyne.NewSize(cellSize*25, cellSize*17)) // Viewport size
 
 	// Set initial scroll position to center on the player
-	scrollTo(playerX, playerY)
+	scrollTo(connectionWorld.PlayerX, connectionWorld.PlayerY)
 }
 
 // readMap reads the map from a file and returns a 2D slice of runes
@@ -174,7 +176,7 @@ func readMap(filename string) ([][]rune, error) {
 // movePlayer moves the player object based on the key press
 // movePlayer moves the player object based on the key press
 func movePlayer(key *fyne.KeyEvent, a fyne.App) {
-	newX, newY := playerX, playerY
+	newX, newY := connectionWorld.PlayerX, connectionWorld.PlayerY
 
 	switch key.Name {
 	case fyne.KeyW:
@@ -201,19 +203,19 @@ func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 	if newX >= 0 && newX < currentMapWidth && newY >= 0 && newY < currentMapHeight &&
 		newX < len(currentMap[0]) && newY < len(currentMap) && currentMap[newY][newX] == '0' {
 		// Move the player
-		grid.Objects[playerY*currentMapWidth+playerX] = canvas.NewRectangle(color.RGBA{R: 0, G: 255, B: 0, A: 255}) // Restore the previous tile
-		playerX, playerY = newX, newY
-		grid.Objects[playerY*currentMapWidth+playerX] = playerRect // Move the player to the new position
+		grid.Objects[connectionWorld.PlayerY*currentMapWidth+connectionWorld.PlayerX] = canvas.NewRectangle(color.RGBA{R: 0, G: 255, B: 0, A: 255}) // Restore the previous tile
+		connectionWorld.PlayerX, connectionWorld.PlayerY = newX, newY
+		grid.Objects[connectionWorld.PlayerY*currentMapWidth+connectionWorld.PlayerX] = playerRect // Move the player to the new position
 
 		addEnemiesFromOpponent("enemy.json")
 
 		grid.Refresh()
 
 		// Update the scroll position to keep the player in view
-		scrollTo(playerX, playerY)
+		scrollTo(connectionWorld.PlayerX, connectionWorld.PlayerY)
 
 		// Update the coordinates label
-		coordsLabel.SetText(fmt.Sprintf("Coordinates: (%d, %d)", playerX, playerY))
+		coordsLabel.SetText(fmt.Sprintf("Coordinates: (%d, %d)", connectionWorld.PlayerX, connectionWorld.PlayerY))
 	}
 }
 func handleCollision(win fyne.Window, a fyne.App) {
