@@ -19,6 +19,12 @@ func ConnecWorld() {
 	}
 	defer conn.Close()
 
+	localAddr := conn.LocalAddr().String()
+	remoteAddr := conn.RemoteAddr().String()
+
+	fmt.Println("Local address:", localAddr)
+	fmt.Println("Remote address:", remoteAddr)
+
 	go func() {
 		scanner := bufio.NewScanner(conn)
 		for scanner.Scan() {

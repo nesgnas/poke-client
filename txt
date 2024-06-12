@@ -1,0 +1,41 @@
+// Read the initial map from file
+	mapData, err := UI.ReadMap("map.txt")
+	if err != nil {
+		fmt.Println("Error reading map file:", err)
+		return
+	}
+
+	a := app.New()
+	UI.W = a.NewWindow("Poke Client")
+
+	// Initialize map dimensions and data
+	UI.CurrentMap = mapData
+	UI.CurrentMapWidth = UI.MapMapW
+	UI.CurrentMapHeight = UI.MaxMapH
+
+	// Set initial player position
+	UI.PlayerX, UI.PlayerY = 1, 1
+
+	// Create the initial grid
+	UI.CreateGrid(UI.CurrentMapWidth, UI.CurrentMapHeight)
+
+	// Create a label for displaying coordinates
+	UI.CoordsLabel = widget.NewLabel(fmt.Sprintf("Coordinates: (%d, %d)", UI.PlayerX, UI.PlayerY))
+
+	// Set up key event handling
+	UI.W.Canvas().SetOnTypedKey(func(key *fyne.KeyEvent) {
+		if key.Name == fyne.KeyReturn {
+
+		} else {
+			UI.MovePlayer(key, a)
+		}
+	})
+
+	// Add the scroll container and label to the window
+	UI.W.SetContent(container.NewVBox(
+		widget.NewLabel("Use WASD to move the red object. Press Enter to expand the map."),
+		UI.ScrollContainer,
+		UI.CoordsLabel,
+	))
+	UI.W.Resize(fyne.NewSize(UI.CellSize*25, UI.CellSize*17+50)) // +50 to accommodate the label
+	UI.W.ShowAndRun()

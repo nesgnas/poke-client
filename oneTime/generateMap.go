@@ -1,4 +1,4 @@
-package main
+package oneTime
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 const (
-// gridSize = 1000
+// gridSize = 50
 )
 
 func mains() {
