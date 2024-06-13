@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	FilePos   = "storeFile/pokerPos.json"
+	FilePos   = "pokerPos.json"
 	IndexFile int
 )
 
@@ -45,7 +45,7 @@ func RandomPos(filename string) int {
 	})
 	PokerPlayer.ID = connectionWorld.LocalAddress
 
-	fmt.Println(IndexFile)
+	//fmt.Println(IndexFile)
 
 	err := UpdatePokerPos(FilePos, IndexFile, PokerPlayer.Positions[0].X, PokerPlayer.Positions[0].Y, PokerPlayer.ID)
 	if err != nil {
@@ -127,7 +127,7 @@ func UpdatePokerPos(filename string, index int, newX int, newY int, id string) e
 		return err
 	}
 
-	fmt.Printf("Updated "+FilePos+" with x=%d, y=%d\n", newX, newY)
+	//fmt.Printf("Updated "+FilePos+" with x=%d, y=%d\n", newX, newY)
 	return nil
 }
 func DeleteInvalidPokerPos(clientFile, pokerFile string) error {
@@ -187,7 +187,7 @@ func DeleteInvalidPokerPos(clientFile, pokerFile string) error {
 		return fmt.Errorf("failed to write updated poker file: %w", err)
 	}
 
-	fmt.Printf("Updated %s by removing invalid entries and adding missing valid ones\n", pokerFile)
+	//fmt.Printf("Updated %s by removing invalid entries and adding missing valid ones\n", pokerFile)
 	return nil
 }
 
@@ -228,6 +228,6 @@ func UpdateEnemyFile(pokerFile, enemyFile string, localAddress string) error {
 		return err
 	}
 
-	fmt.Printf("Updated %s based on local address %s\n", enemyFile, localAddress)
+	//fmt.Printf("Updated %s based on local address %s\n", enemyFile, localAddress)
 	return nil
 }

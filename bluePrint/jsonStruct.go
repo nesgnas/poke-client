@@ -9,25 +9,25 @@ import (
 
 var Data UserData
 var (
-	PokeDex PokedexType
+	PokeDex              PokedexType
 	TypeEffectivenessMap map[string]TypeEffectiveness
 )
 
 type User struct {
-	ConnAdd     string   `json:"connAdd"`
+	ConnAdd string `json:"connAdd"`
 	// ListPokemon []string `json:"listPokemon"`
 	ListPokemon []struct {
-		UID string `json:"uid"`
-		ID  int    `json:"id"`
-		Exp int    `json:"exp"`
-		EV  float64    `json:"ev"`
-		Lv  int    `json:"lv"`
+		UID string  `json:"uid"`
+		ID  int     `json:"id"`
+		Exp int     `json:"exp"`
+		EV  float64 `json:"ev"`
+		Lv  int     `json:"lv"`
 	} `json:"listPokemon"`
-	MaxValue    string   `json:"maxValue"`
-	PositionX   int      `json:"positionX"`
-	PositionY   int      `json:"positionY"`
-	SpaceLeft   string   `json:"spaceLeft"`
-	UID         string   `json:"uID"`
+	MaxValue  string `json:"maxValue"`
+	PositionX int    `json:"positionX"`
+	PositionY int    `json:"positionY"`
+	SpaceLeft string `json:"spaceLeft"`
+	UID       string `json:"uID"`
 }
 
 type UserData struct {
@@ -35,29 +35,29 @@ type UserData struct {
 }
 
 type Pokemon struct {
-	ID       int
-	Name     struct {
+	ID   int
+	Name struct {
 		English string
 	}
 	Type []string
 	Base struct {
-		HP       int
-		Attack   int
-		Defense  int
-		SpAttack int `json:"Sp. Attack"`
+		HP        int
+		Attack    int
+		Defense   int
+		SpAttack  int `json:"Sp. Attack"`
 		SpDefense int `json:"Sp. Defense"`
-		Speed		int
+		Speed     int
 	}
-	Exp  int
-	Ev	float64
-	Level int
-	Alive bool
+	Exp       int
+	Ev        float64
+	Level     int
+	Alive     bool
 	Evolution Evolution `json:"evolution"`
 }
 
 type Evolution struct {
 	Next [][]string `json:"next"`
-	Prev []string `json:"prev"`
+	Prev []string   `json:"prev"`
 }
 
 type TypeEffectiveness struct {
@@ -68,7 +68,7 @@ type TypeEffectiveness struct {
 }
 
 type Player struct {
-	ConnAdd string
+	ConnAdd  string
 	Pokemons []Pokemon
 	Active   int
 }
@@ -101,12 +101,12 @@ func ReadUser(fileName string) {
 func LoadTypeEffectiveness(filename string) error {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-			return err
+		return err
 	}
 
 	var types []TypeEffectiveness
 	if err := json.Unmarshal(bytes, &types); err != nil {
-			return err
+		return err
 	}
 
 	TypeEffectivenessMap = make(map[string]TypeEffectiveness)
@@ -130,12 +130,12 @@ func LoadPokedex(filename string) (PokedexType, error) {
 
 	var pokemons []Pokemon // Assuming Pokemon is the struct that matches the JSON structure
 	if err := json.Unmarshal(bytes, &pokemons); err != nil {
-			return nil, err
+		return nil, err
 	}
 
 	pokedex := make(PokedexType) // Assuming Pokedex is a map[int]Pokemon
 	for _, pokemon := range pokemons {
-			pokedex[pokemon.ID] = pokemon
+		pokedex[pokemon.ID] = pokemon
 	}
 
 	return pokedex, nil

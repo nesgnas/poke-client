@@ -131,11 +131,11 @@ func isJSON(s string) bool {
 
 func waitForJSONResponse(conn net.Conn, fileName string) {
 	scanner := bufio.NewScanner(conn)
-	fmt.Println("WAITFOR JSON --- ###")
+	//fmt.Println("WAITFOR JSON --- ###")
 	for scanner.Scan() {
 		text := scanner.Text()
 		if isJSON(text) {
-			fmt.Println("Received JSON:")
+			//fmt.Println("Received JSON:")
 			var prettyJSON bytes.Buffer
 			if err := json.Indent(&prettyJSON, []byte(text), "", "  "); err != nil {
 				fmt.Println("Error parsing JSON:", err)
@@ -151,7 +151,7 @@ func waitForJSONResponse(conn net.Conn, fileName string) {
 			fmt.Println("JSON data saved to", parts[1])
 			break
 		} else {
-			fmt.Println("Received:", text)
+			//fmt.Println("Received:", text)
 		}
 	}
 	if err := scanner.Err(); err != nil {
