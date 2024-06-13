@@ -13,129 +13,113 @@ import (
 	"strings"
 )
 
-var LocalAddress string = "[::1]:58065"
+var LocalAddress string
 var (
+	Conn             net.Conn
 	PlayerX, PlayerY int
+	CHANNEL_HI       bool = false
 )
 
-func ConnecWorld() {
+func ConnectWorld(conn net.Conn) {
 	err := godotenv.Load()
 	if err != nil {
 		fmt.Println("Error loading .env file")
 	}
 
-	conn, err := net.Dial("tcp", "localhost:8080")
-	if err != nil {
-		fmt.Printf("Error connecting to server: %v\n", err)
-		return
-	}
-	defer conn.Close()
-
-	LocalAddress = conn.LocalAddr().String()
 	remoteAddr := conn.RemoteAddr().String()
 
-	fmt.Println("Local address:", conn.LocalAddr().String())
+	fmt.Println("Local address:", LocalAddress)
 	fmt.Println("Remote address:", remoteAddr)
 
-	go func() {
-		scanner := bufio.NewScanner(conn)
-		for scanner.Scan() {
-			receivedMessage := scanner.Text()
-			fmt.Println("Received:", receivedMessage)
+	initiateConnectionWorld(conn)
 
-			// Switch based on whether the message starts with "REPEAT "
-			switch {
-			case strings.HasPrefix(receivedMessage, "REPEAT "):
-				// Extract the message after "REPEAT "
-				messageToRepeat := strings.TrimPrefix(receivedMessage, "REPEAT ")
-
-				// Switch based on the command type
-				switch {
-				case strings.HasPrefix(messageToRepeat, "GET "):
-					_, err := conn.Write([]byte(messageToRepeat + "\n"))
-					if err != nil {
-						fmt.Printf("Error sending to server: %v\n", err)
-						return
-					}
-					// If the message is a "GET" command, wait for JSON response
-					fmt.Println(messageToRepeat)
-					fmt.Println("hehehehe")
-					waitForJSONResponse(conn, messageToRepeat)
-					bluePrint.ReadUser("clients.json")
-				default:
-					// For other messages, directly send them back to the server
-					_, err := conn.Write([]byte(messageToRepeat + "\n"))
-					if err != nil {
-						fmt.Printf("Error sending to server: %v\n", err)
-						return
-					}
-				}
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			fmt.Printf("Error reading from server: %v\n", err)
-		}
-
-	}()
+	go listenForMessages(conn)
 
 	inputScanner := bufio.NewScanner(os.Stdin)
 	for inputScanner.Scan() {
 		line := inputScanner.Text()
-		if strings.HasPrefix(line, "SUBSCRIBE") || strings.HasPrefix(line, "PUBLISH") || strings.HasPrefix(line, "UNSUBSCRIBE") || strings.HasPrefix(line, "SHOWLIST") {
-			_, err := conn.Write([]byte(line + "\n"))
-			if err != nil {
-				fmt.Printf("Error sending to server: %v\n", err)
-				return
-			}
-		} else if strings.HasPrefix(line, "EXIT") {
-			_, err := conn.Write([]byte(line + "\n"))
-			if err != nil {
-				fmt.Printf("Error sending to server: %v\n", err)
-				return
-			}
-
-		} else if strings.HasPrefix(line, "GET") {
-			_, err := conn.Write([]byte(line + "\n"))
-			if err != nil {
-				fmt.Printf("Error sending to server: %v\n", err)
-				return
-			}
-
-			scanner := bufio.NewScanner(conn)
-			for scanner.Scan() {
-				text := scanner.Text()
-				if isJSON(text) {
-					fmt.Println("Received JSON:")
-					var prettyJSON bytes.Buffer
-					if err := json.Indent(&prettyJSON, []byte(text), "", "  "); err != nil {
-						fmt.Println("Error parsing JSON:", err)
-						continue
-					}
-
-					parts := strings.SplitN(line, " ", 3)
-
-					err := ioutil.WriteFile(parts[1], prettyJSON.Bytes(), 0644)
-					if err != nil {
-						fmt.Printf("Error writing to file: %v\n", err)
-						return
-					}
-					fmt.Println("JSON data saved to output.json")
-
-				} else {
-					fmt.Println("Received:", text)
-				}
-			}
-			if err := scanner.Err(); err != nil {
-				fmt.Printf("Error reading from server: %v\n", err)
-			}
-
-		} else {
-			fmt.Println("Invalid command. Use SUBSCRIBE <channel>, PUBLISH <channel> <message>, UNSUBSCRIBE <channel>, or SHOWLIST.")
-			fmt.Println(" Use GET <fileName>, PUBLISH <channel> <message>, UNSUBSCRIBE <channel>, or SHOWLIST.")
+		switch {
+		case strings.HasPrefix(line, "SUBSCRIBE"), strings.HasPrefix(line, "PUBLISH"), strings.HasPrefix(line, "UNSUBSCRIBE"), strings.HasPrefix(line, "SHOWLIST"):
+			SendMessage(conn, line)
+		case strings.HasPrefix(line, "EXIT"):
+			SendMessage(conn, line)
+			return
+		case strings.HasPrefix(line, "GET"):
+			handleGetCommand(conn, line)
+		default:
+			fmt.Println("Invalid command. Use SUBSCRIBE <channel>, PUBLISH <channel> <message>, UNSUBSCRIBE <channel>, SHOWLIST, or GET <fileName>.")
 		}
 	}
 	if err := inputScanner.Err(); err != nil {
 		fmt.Printf("Error reading from input: %v\n", err)
+	}
+}
+
+func listenForMessages(conn net.Conn) {
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		receivedMessage := scanner.Text()
+		fmt.Println("Received:", receivedMessage)
+
+		switch {
+		case strings.HasPrefix(receivedMessage, "REPEAT "):
+			messageToRepeat := strings.TrimPrefix(receivedMessage, "REPEAT ")
+
+			switch {
+			case strings.HasPrefix(messageToRepeat, "GET "):
+				SendMessage(conn, messageToRepeat)
+				waitForJSONResponse(conn, messageToRepeat)
+				bluePrint.ReadUser("clients.json")
+			default:
+				SendMessage(conn, messageToRepeat)
+			}
+		case strings.HasPrefix(receivedMessage, "PUBLISH"):
+			checkChannelAction(receivedMessage)
+		default:
+			// Handle other cases if needed
+			//fmt.Println("Unhandled message:", receivedMessage)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Error reading from server: %v\n", err)
+	}
+}
+
+func SendMessage(conn net.Conn, message string) {
+	_, err := conn.Write([]byte(message + "\n"))
+	if err != nil {
+		fmt.Printf("Error sending to server: %v\n", err)
+	}
+}
+
+func handleGetCommand(conn net.Conn, line string) {
+	SendMessage(conn, line)
+	fmt.Println("HANNDEL COMMAND --- ###")
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if isJSON(text) {
+			fmt.Println("Received JSON:")
+			var prettyJSON bytes.Buffer
+			if err := json.Indent(&prettyJSON, []byte(text), "", "  "); err != nil {
+				fmt.Println("Error parsing JSON:", err)
+				continue
+			}
+
+			parts := strings.SplitN(line, " ", 2)
+			err := ioutil.WriteFile(parts[1], prettyJSON.Bytes(), 0644)
+			if err != nil {
+				fmt.Printf("Error writing to file: %v\n", err)
+				return
+			}
+			fmt.Println("JSON data saved to", parts[1])
+		} else {
+			fmt.Println("Received:", text)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Error reading from server: %v\n", err)
 	}
 }
 
@@ -145,11 +129,10 @@ func isJSON(s string) bool {
 }
 
 func waitForJSONResponse(conn net.Conn, fileName string) {
-	fmt.Println("doheheeh")
 	scanner := bufio.NewScanner(conn)
+	fmt.Println("WAITFOR JSON --- ###")
 	for scanner.Scan() {
 		text := scanner.Text()
-		fmt.Println(text)
 		if isJSON(text) {
 			fmt.Println("Received JSON:")
 			var prettyJSON bytes.Buffer
@@ -158,15 +141,14 @@ func waitForJSONResponse(conn net.Conn, fileName string) {
 				continue
 			}
 
-			parts := strings.SplitN(fileName, " ", 3)
-
+			parts := strings.SplitN(fileName, " ", 2)
 			err := ioutil.WriteFile(parts[1], prettyJSON.Bytes(), 0644)
 			if err != nil {
 				fmt.Printf("Error writing to file: %v\n", err)
 				return
 			}
-			fmt.Println("JSON data saved to" + parts[1])
-
+			fmt.Println("JSON data saved to", parts[1])
+			break
 		} else {
 			fmt.Println("Received:", text)
 		}

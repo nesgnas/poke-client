@@ -2,21 +2,20 @@ package main
 
 import (
 	"bufio"
+	"client/PokerPos"
 	"client/connectionWorld"
 	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/dialog"
-	"golang.org/x/exp/rand"
-	"image/color"
-	"os"
-	"time"
-
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
+	"net"
+	"os"
 )
 
 const (
@@ -30,7 +29,7 @@ const (
 
 var (
 	playerRect       *canvas.Rectangle
-	enemyRect        []Enemy
+	enemyRect        []*Enemy
 	scrollContainer  *container.Scroll
 	coordsLabel      *widget.Label
 	currentMap       [][]rune
@@ -49,7 +48,17 @@ type Enemy struct {
 
 func main() {
 
-	go connectionWorld.ConnecWorld()
+	Conn, err := net.Dial("tcp", "localhost:8080")
+	if err != nil {
+		fmt.Printf("Error connecting to server: %v\n", err)
+		return
+	}
+	defer Conn.Close()
+
+	connectionWorld.LocalAddress = Conn.LocalAddr().String()
+	fmt.Println(connectionWorld.LocalAddress)
+	connectionWorld.Conn = Conn
+	go connectionWorld.ConnectWorld(connectionWorld.Conn)
 
 	OnBattle = false
 	// Read the initial map from file
@@ -70,8 +79,19 @@ func main() {
 	currentMapHeight = maxMapH
 
 	// Set initial player position
+	fmt.Println("KEEP TRACK OPEN")
 
-	connectionWorld.PlayerX, connectionWorld.PlayerY = 2, 2
+	PokerPos.RandomPos(PokerPos.FilePos)
+
+	//err = PokerPos.UpdateEnemyFile(PokerPos.FilePos, "enemy.json", connectionWorld.LocalAddress)
+	//if err != nil {
+	//	fmt.Println("Error:", err)
+	//} else {
+	//	fmt.Println("enemy.json has been updated based on local address.")
+	//}
+
+	connectionWorld.PlayerX = PokerPos.PokerPlayer.Positions[PokerPos.IndexFile].X
+	connectionWorld.PlayerY = PokerPos.PokerPlayer.Positions[PokerPos.IndexFile].Y
 
 	// Create the initial grid
 	createGrid(currentMapWidth, currentMapHeight)
@@ -189,8 +209,12 @@ func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 		newX++
 	}
 
+	fmt.Println("LOCAL ADDRESS ~~~~ ####", connectionWorld.LocalAddress)
+
+	fmt.Println("LIST ENEMY ~~~~ ####")
 	// Check collision with enemies
 	for _, enemy := range enemyRect {
+		fmt.Println("ENEMY ~~~~ ####", enemy)
 		if newX == int(enemy.Position.X) && newY == int(enemy.Position.Y) {
 			// Collision detected
 			// Handle collision logic here (e.g., player takes damage)
@@ -199,15 +223,49 @@ func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 		}
 	}
 
+	fmt.Println("PLAYER POSITION ~~~~ Before####", connectionWorld.PlayerX, connectionWorld.PlayerY)
+
 	// Check if the new position is within bounds and not a boundary
 	if newX >= 0 && newX < currentMapWidth && newY >= 0 && newY < currentMapHeight &&
 		newX < len(currentMap[0]) && newY < len(currentMap) && currentMap[newY][newX] == '0' {
+
 		// Move the player
+
 		grid.Objects[connectionWorld.PlayerY*currentMapWidth+connectionWorld.PlayerX] = canvas.NewRectangle(color.RGBA{R: 0, G: 255, B: 0, A: 255}) // Restore the previous tile
 		connectionWorld.PlayerX, connectionWorld.PlayerY = newX, newY
 		grid.Objects[connectionWorld.PlayerY*currentMapWidth+connectionWorld.PlayerX] = playerRect // Move the player to the new position
 
+		//Update PokerPlayerPos
+		//go IsChangedPokerPos(connectionWorld.Conn)
+		PokerPos.UpdatePokerPos(PokerPos.FilePos, 0, connectionWorld.PlayerX, connectionWorld.PlayerY, "")
+
+		fmt.Println("PLAYER POSITION ~~~~ After####", connectionWorld.PlayerX, connectionWorld.PlayerY)
+
+		err := PokerPos.DeleteInvalidPokerPos("clients.json", PokerPos.FilePos)
+		if err != nil {
+			fmt.Println("Error:", err)
+		} else {
+			fmt.Println("Invalid poker positions have been removed.")
+		}
+
+		err = PokerPos.UpdateEnemyFile(PokerPos.FilePos, "enemy.json", connectionWorld.LocalAddress)
+		if err != nil {
+			fmt.Println("ERROR:", err)
+		}
+
+		fmt.Println("TEST IN MOVE")
+		fmt.Println("LIST ENEMY --before ADD ~~~~ ####")
+		for _, enemy := range enemyRect {
+			fmt.Println("ENEMY ~~~~ ####", enemy)
+		}
+
 		addEnemiesFromOpponent("enemy.json")
+
+		fmt.Println("LIST ENEMY --after ADD~~~~ ####")
+		for _, enemy := range enemyRect {
+			fmt.Println("ENEMY ~~~~ ####", enemy)
+		}
+		fmt.Println("KEEP TRACK CLOSE")
 
 		grid.Refresh()
 
@@ -263,26 +321,13 @@ func createEnemy(x, y int, color color.Color) Enemy {
 	}
 }
 
-func addEnemies() {
-	// Generate enemy positions randomly
-	rand.Seed(uint64(time.Now().UnixNano()))
-	for i := 0; i < 5; i++ {
-		x := rand.Intn(50)
-		y := rand.Intn(50)
-		enemy := createEnemy(x, y, color.RGBA{R: 255, G: 165, B: 0, A: 255}) // Orange color
-		enemyRect = append(enemyRect, enemy)
-		grid.Objects[y*currentMapWidth+x] = enemy.Rect
-	}
-	fmt.Println(enemyRect)
-}
-
 type Coordinate struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 }
 
 type Opponent struct {
-	ID        int          `json:"id"`
+	ID        string       `json:"id"`
 	Positions []Coordinate `json:"position"`
 }
 
@@ -317,13 +362,49 @@ func addEnemiesFromOpponent(filename string) error {
 
 	// Add enemies to the grid based on opponent positions
 	for _, opponent := range opponentRects {
-		for _, pos := range opponent.Positions {
-			// Create an enemy and add it to the grid
-			enemy := createEnemy(pos.X, pos.Y, color.RGBA{R: 255, G: 165, B: 0, A: 255}) // Orange color
-			enemyRect = append(enemyRect, enemy)
-			grid.Objects[pos.Y*currentMapWidth+pos.X] = enemy.Rect
+		if opponent.ID != connectionWorld.LocalAddress {
+			for _, pos := range opponent.Positions {
+				// Create an enemy and add it to the grid
+				enemy := createEnemy(pos.X, pos.Y, color.RGBA{R: 255, G: 165, B: 0, A: 255}) // Orange color
+				enemyRect = append(enemyRect, &enemy)
+				grid.Objects[pos.Y*currentMapWidth+pos.X] = enemy.Rect
+			}
 		}
 	}
 
 	return nil
 }
+
+//func IsChangedPokerPos(conn net.Conn) {
+//	fmt.Println("####################")
+//
+//	for {
+//		pokerPos, err := PokerPos.ReadPokerPos(PokerPos.FilePos)
+//		if err != nil {
+//			fmt.Printf("Error reading poker pos: %v\n", err)
+//			time.Sleep(time.Second) // Retry after 1 second on error
+//			continue
+//		}
+//
+//		currentX, currentY := 0, 0
+//
+//		for _, current := range pokerPos {
+//			if current.ID == connectionWorld.LocalAddress {
+//				//fmt.Println("TRUE")
+//				currentX = current.Positions[0].X
+//				currentY = current.Positions[0].Y
+//			}
+//		}
+//
+//		if connectionWorld.PrePokerPosX != currentX || connectionWorld.PrePokerPosY != currentY {
+//			message := fmt.Sprintf("PUBLISH hi %s %d %d", connectionWorld.LocalAddress, currentX, currentY)
+//			fmt.Println("",message)
+//			go connectionWorld.SendMessage(conn, message)
+//
+//			connectionWorld.PrePokerPosX = currentX
+//			connectionWorld.PrePokerPosY = currentY
+//		}
+//
+//		time.Sleep(time.Second) // Check again after 1 second
+//	}
+//}
