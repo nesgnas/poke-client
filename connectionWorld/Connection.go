@@ -6,11 +6,12 @@ import (
 	"client/bluePrint"
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	"io/ioutil"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 var LocalAddress string

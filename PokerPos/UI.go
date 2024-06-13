@@ -5,9 +5,10 @@ import (
 	"client/connectionWorld"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/exp/rand"
 	"os"
 	"time"
+
+	"golang.org/x/exp/rand"
 )
 
 var (
@@ -143,7 +144,7 @@ func DeleteInvalidPokerPos(clientFile, pokerFile string) error {
 
 	// Extract valid connection addresses
 	validConnAdd := make(map[string]struct{})
-	for _, client := range userDatas.Users {
+	for _, client := range userDatas.User {
 		validConnAdd[client.ConnAdd] = struct{}{}
 	}
 

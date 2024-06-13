@@ -3,9 +3,14 @@ package main
 import (
 	"bufio"
 	"client/PokerPos"
+	"client/bluePrint"
 	"client/connectionWorld"
 	"encoding/json"
 	"fmt"
+	"image/color"
+	"net"
+	"os"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -13,9 +18,6 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
-	"image/color"
-	"net"
-	"os"
 )
 
 const (
@@ -61,10 +63,17 @@ func main() {
 	go connectionWorld.ConnectWorld(connectionWorld.Conn)
 
 	OnBattle = false
+
 	// Read the initial map from file
 	mapData, err := readMap("map.txt")
 	if err != nil {
 		fmt.Println("Error reading map file:", err)
+		return
+	}
+
+	bluePrint.PokeDex, err = bluePrint.LoadPokedex("pokedex.json")
+	if err != nil {
+		fmt.Println("Error loading pokedex:", err)
 		return
 	}
 
