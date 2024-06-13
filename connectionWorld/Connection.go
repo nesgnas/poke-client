@@ -34,7 +34,7 @@ func ConnectWorld(conn net.Conn) {
 
 	initiateConnectionWorld(conn)
 
-	go listenForMessages(conn)
+	go ListenForMessages(conn)
 
 	inputScanner := bufio.NewScanner(os.Stdin)
 	for inputScanner.Scan() {
@@ -56,7 +56,7 @@ func ConnectWorld(conn net.Conn) {
 	}
 }
 
-func listenForMessages(conn net.Conn) {
+func ListenForMessages(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		receivedMessage := scanner.Text()
