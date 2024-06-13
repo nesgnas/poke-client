@@ -20,7 +20,7 @@ type User struct {
 		UID string `json:"uid"`
 		ID  int    `json:"id"`
 		Exp int    `json:"exp"`
-		EV  int    `json:"ev"`
+		EV  float64    `json:"ev"`
 		Lv  int    `json:"lv"`
 	} `json:"listPokemon"`
 	MaxValue    string   `json:"maxValue"`
@@ -49,7 +49,7 @@ type Pokemon struct {
 		Speed		int
 	}
 	Exp  int
-	Ev	int
+	Ev	float64
 	Level int
 	Alive bool
 	Evolution Evolution `json:"evolution"`
@@ -139,4 +139,20 @@ func LoadPokedex(filename string) (PokedexType, error) {
 	}
 
 	return pokedex, nil
+}
+
+func UpdateBattleState(fileName string, state interface{}) error {
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(fileName, data, 0644)
+}
+
+func ReadBattleState(fileName string, state interface{}) error {
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, state)
 }

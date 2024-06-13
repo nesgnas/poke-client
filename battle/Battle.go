@@ -2,7 +2,9 @@ package battle
 
 import (
 	"client/bluePrint"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"regexp"
 	"strconv"
@@ -27,9 +29,9 @@ func (p *Player) SwitchPokemon(index int) {
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
-			if s == item {
-					return true
-			}
+		if s == item {
+			return true
+		}
 	}
 	return false
 }
@@ -72,7 +74,6 @@ func (p *Player) Attack(target *Player, attackerID string, defenderID string) {
 	}
 
 	defender.Base.HP -= damage
-	defender.Base.HP -= damage
 	fmt.Printf("%s (Player %s) attacks %s (Player %s) for %d damage.\n", attacker.Name.English, attackerID, defender.Name.English, defenderID, damage)
 
 	if defender.Base.HP <= 0 {
@@ -92,7 +93,6 @@ func (p *Player) LevelUp(exp int, level int) (int, int) {
 	for i := 1; i < level; i++ {
 		expToLevelUp *= 2
 	}
-	// fmt.Printf("Exp to level up to level %d: %d\n", level+1, expToLevelUp)
 
 	if exp >= expToLevelUp {
 		return p.LevelUp(exp-expToLevelUp, level+1)
@@ -102,18 +102,15 @@ func (p *Player) LevelUp(exp int, level int) (int, int) {
 }
 
 func (p *Player) CheckEvolution(pokemon *Pokemon) {
-	// Assuming pokedex is a global variable or passed to this function
 	if evolution, exists := pokedex[pokemon.ID]; exists {
 		for _, next := range evolution.Evolution.Next {
 			nextID := next[0]
 			condition := next[1]
 
-			// Use regex to check if the condition is level-based or item-based
 			levelRe := regexp.MustCompile(`\d+`)
 			itemRe := regexp.MustCompile(`use (.+)`)
 
 			if levelRe.MatchString(condition) {
-				// Level-based evolution
 				levelStr := levelRe.FindString(condition)
 				requiredLevel, err := strconv.Atoi(levelStr)
 				if err != nil {
@@ -128,18 +125,15 @@ func (p *Player) CheckEvolution(pokemon *Pokemon) {
 					}
 					if nextPokemon, exists := pokedex[nextPokemonID]; exists {
 						currentName := pokemon.Name.English
-						// Perform evolution
 						pokemon.ID = nextPokemon.ID
 						pokemon.Name = nextPokemon.Name
 						pokemon.Base = nextPokemon.Base
-						fmt.Printf("%s has evolved into %s!\n", currentName,nextPokemon.Name.English)
+						fmt.Printf("%s has evolved into %s!\n", currentName, nextPokemon.Name.English)
 					}
 				}
 			} else if matches := itemRe.FindStringSubmatch(condition); matches != nil {
-				// Item-based evolution
 				item := matches[1]
 				fmt.Printf("%s needs to use %s to evolve.\n", pokemon.Name.English, item)
-				// Here you can add logic to handle item-based evolution if needed
 			} else {
 				fmt.Printf("Unknown evolution condition: %s\n", condition)
 			}
@@ -168,21 +162,20 @@ func InitializePlayer(client Client) Player {
 }
 
 func Battle(clients Clients) {
-	if len(clients.User) < 1 {
+	if len(clients.User) < 2 {
 		fmt.Println("Not enough clients to start a battle.")
 		return
 	}
 
-	// Initialize the single player
-	player := InitializePlayer(Client(clients.User[0]))
+	player1 := InitializePlayer(Client(clients.User[0]))
+	player2 := InitializePlayer(Client(clients.User[1]))
 
-	// DEBUG: Print the initial state of the players
-	fmt.Printf("Player %s: %v\n", player.ConnAdd, player)
+	fmt.Printf("Player 1: %v\n", player1.ConnAdd)
+	fmt.Printf("Player 2: %v\n", player2.ConnAdd)
 
 	player1Wins := 0
 	player2Wins := 0
 
-	// Best-of-three matches, each round using a different Pokémon from the first 3
 	for round := 0; round < 3; round++ {
 		fmt.Printf("\nRound %d:\n", round+1)
 		winner := conductMatch(&player1, &player2, round)
@@ -194,16 +187,13 @@ func Battle(clients Clients) {
 
 		fmt.Printf("Player 1 wins: %d, Player 2 wins: %d\n", player1Wins, player2Wins)
 
-		// Check if either player has won two matches
 		if player1Wins == 2 || player2Wins == 2 {
 			break
 		}
 	}
 
-	// Break line for better readability
 	fmt.Println("--------------------")
 
-	// Determine the overall winner and calculate experience
 	var winner, loser *Player
 	if player1Wins > player2Wins {
 		fmt.Printf("Player 1 wins the battle!\n")
@@ -215,18 +205,16 @@ func Battle(clients Clients) {
 		loser = &player1
 	}
 
-	// Calculate total experience from the loser's Pokémon
 	fmt.Printf("\nGaining experience...\n")
 	totalExp := 100
 	for _, pokemon := range loser.Pokemons {
 		totalExp += pokemon.Level * 100
-		for i :=1; i < pokemon.Level; i++ {
+		for i := 1; i < pokemon.Level; i++ {
 			totalExp = int(float64(totalExp) * 1.5)
 		}
 	}
 	fmt.Printf("Total experience gained: %d\n", totalExp)
 
-	// Distribute experience to the winner's Pokémon
 	expPerPokemon := totalExp / len(winner.Pokemons)
 
 	for i := range winner.Pokemons {
@@ -236,22 +224,42 @@ func Battle(clients Clients) {
 		newLevel, remainingExp := winner.LevelUp(winner.Pokemons[i].Exp, winner.Pokemons[i].Level)
 		winner.Pokemons[i].Level = newLevel
 		winner.Pokemons[i].Exp = remainingExp
-		
+
 		fmt.Printf("%s level up from %d to %d\n", winner.Pokemons[i].Name.English, currentLevel, newLevel)
 
-		// Check for evolution
 		fmt.Printf("\nChecking for evolution...\n")
-		winner.CheckEvolution(&winner.Pokemons[i])
+		winner.CheckEvolution((*Pokemon)(&winner.Pokemons[i]))
 
-		// Break line for better readability
 		fmt.Println("--------------------")
 	}
 
-
-
-	// Notify about evolutions and end the battle
 	for _, pokemon := range winner.Pokemons {
 		fmt.Printf("%s is now level %d.\n", pokemon.Name.English, pokemon.Level)
+	}
+
+	// Update battle state in battle.json
+	battleState := map[string]interface{}{
+		"winner": winner.ConnAdd,
+		"loser":  loser.ConnAdd,
+		"player1": map[string]interface{}{
+			"connAdd": player1.ConnAdd,
+			"pokemons": player1.Pokemons,
+		},
+		"player2": map[string]interface{}{
+			"connAdd": player2.ConnAdd,
+			"pokemons": player2.Pokemons,
+		},
+	}
+
+	data, err := json.MarshalIndent(battleState, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshalling battle state: %v\n", err)
+		return
+	}
+
+	err = ioutil.WriteFile("storeFile/battle.json", data, 0644)
+	if err != nil {
+		fmt.Printf("Error writing battle state to file: %v\n", err)
 	}
 }
 
@@ -285,29 +293,4 @@ func conductMatch(player1, player2 *Player, round int) int {
 
 	// If no Pokémon has fainted, decide randomly (for simplicity)
 	return rand.Intn(2) + 1
-}
-
-func main() {
-	// Load Pokedex
-	var err error
-	pokedex, err = LoadPokedex("pokedex.json")
-	if err != nil {
-		fmt.Println("Error loading Pokedex:", err)
-		return
-	}
-
-	// Load Type Effectiveness
-	if err := LoadTypeEffectiveness("types.json"); err != nil {
-		fmt.Println("Error loading type effectiveness:", err)
-		return
-	}
-
-	// Load Clients
-	clients, err := LoadClients("clients.json")
-	if err != nil {
-		fmt.Println("Error loading Clients:", err)
-		return
-	}
-
-	Battle(clients)
 }
