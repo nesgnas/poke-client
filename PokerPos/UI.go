@@ -129,61 +129,64 @@ func UpdatePokerPos(filename string, index int, newX int, newY int, id string) e
 	fmt.Printf("Updated "+FilePos+" with x=%d, y=%d\n", newX, newY)
 	return nil
 }
-
 func DeleteInvalidPokerPos(clientFile, pokerFile string) error {
 	// Read and parse clients.json
 	clientFileData, err := os.ReadFile(clientFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read client file: %w", err)
 	}
 
-	var UserDatas bluePrint.UserData
-	err = json.Unmarshal(clientFileData, &UserDatas)
-	if err != nil {
-		return err
+	var userDatas bluePrint.UserData
+	if err := json.Unmarshal(clientFileData, &userDatas); err != nil {
+		return fmt.Errorf("failed to unmarshal client data: %w", err)
 	}
 
 	// Extract valid connection addresses
-	validConnAdd := make(map[string]bool)
-	for _, client := range UserDatas.Users {
-		validConnAdd[client.ConnAdd] = true
+	validConnAdd := make(map[string]struct{})
+	for _, client := range userDatas.Users {
+		validConnAdd[client.ConnAdd] = struct{}{}
 	}
 
 	// Read and parse pokerPos.json
 	pokerFileData, err := os.ReadFile(pokerFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read poker file: %w", err)
 	}
 
 	var pokerData struct {
 		Poker []PokerPos `json:"Poker"`
 	}
-	err = json.Unmarshal(pokerFileData, &pokerData)
-	if err != nil {
-		return err
+	if err := json.Unmarshal(pokerFileData, &pokerData); err != nil {
+		return fmt.Errorf("failed to unmarshal poker data: %w", err)
 	}
 
-	// Filter out invalid PokerPos entries
+	// Filter out invalid PokerPos entries and collect existing IDs
 	var updatedPoker []PokerPos
 	for _, poker := range pokerData.Poker {
-		if validConnAdd[poker.ID] {
+		if _, valid := validConnAdd[poker.ID]; valid {
 			updatedPoker = append(updatedPoker, poker)
+			delete(validConnAdd, poker.ID) // Remove from validConnAdd as it is already present
 		}
+	}
+
+	// Add missing valid IDs to pokerPos.json
+	for connAdd := range validConnAdd {
+		newPokerPos := PokerPos{ID: connAdd}
+		updatedPoker = append(updatedPoker, newPokerPos)
 	}
 
 	// Write the updated pokerPos.json
 	pokerData.Poker = updatedPoker
 	updatedPokerFileData, err := json.MarshalIndent(pokerData, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal updated poker data: %w", err)
 	}
 
-	err = os.WriteFile(pokerFile, updatedPokerFileData, 0644)
-	if err != nil {
-		return err
+	if err := os.WriteFile(pokerFile, updatedPokerFileData, 0644); err != nil {
+		return fmt.Errorf("failed to write updated poker file: %w", err)
 	}
 
-	fmt.Printf("Updated %s by removing invalid entries\n", pokerFile)
+	fmt.Printf("Updated %s by removing invalid entries and adding missing valid ones\n", pokerFile)
 	return nil
 }
 

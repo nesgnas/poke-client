@@ -237,7 +237,7 @@ func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 
 		//Update PokerPlayerPos
 		//go IsChangedPokerPos(connectionWorld.Conn)
-		PokerPos.UpdatePokerPos(PokerPos.FilePos, 0, connectionWorld.PlayerX, connectionWorld.PlayerY, "")
+		//PokerPos.UpdatePokerPos(PokerPos.FilePos, 0, connectionWorld.PlayerX, connectionWorld.PlayerY, "")
 
 		fmt.Println("PLAYER POSITION ~~~~ After####", connectionWorld.PlayerX, connectionWorld.PlayerY)
 
