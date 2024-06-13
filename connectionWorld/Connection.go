@@ -74,7 +74,7 @@ func ListenForMessages(conn net.Conn) {
 			default:
 				SendMessage(conn, messageToRepeat)
 			}
-		case strings.HasPrefix(receivedMessage, "PUBLISH"):
+		case strings.HasPrefix(receivedMessage, "PUBLISH "):
 			checkChannelAction(receivedMessage)
 		default:
 			// Handle other cases if needed

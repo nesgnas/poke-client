@@ -26,10 +26,8 @@ func initiateConnectionWorld(conn net.Conn) {
 }
 
 func checkChannelAction(mess string) {
-	PartString = strings.SplitN(mess, " ", 3)
-	fmt.Println("checkChannelAction parts:", PartString)
+	PartString = strings.SplitN(mess, " ", 2)
 	if len(PartString) > 1 && strings.HasPrefix(PartString[1], "BATTLE_START") {
-		fmt.Println("Battle message detected")
 		handleBattleMessage(PartString[1])
 	}
 }
@@ -46,15 +44,14 @@ func handleBattleMessage(message string) {
 	player2ConnAdd := PartString[2]
 
 	// Read the clients data from the store file
-	var clients bluePrint.UserData
-	err := bluePrint.ReadBattleState("storeFile/clients.json", &clients)
+	clients ,err := battle.LoadClients("clients.json")
 	if err != nil {
 		fmt.Printf("Error reading clients data: %v\n", err)
 		return
 	}
 
 	// Find the players based on their connection addresses
-	var player1, player2 bluePrint.User
+	var player1, player2 battle.Client
 	for _, client := range clients.User {
 		if client.ConnAdd == player1ConnAdd {
 			player1 = client
@@ -69,16 +66,13 @@ func handleBattleMessage(message string) {
 		return
 	}
 
-	var player1Client = battle.Client(player1)
-	var player2Client = battle.Client(player2)
-
 	// Initialize the players
-	player1Data := battle.InitializePlayer(player1Client)
-	player2Data := battle.InitializePlayer(player2Client)
+	player1Data := battle.InitializePlayer(player1)
+	player2Data := battle.InitializePlayer(player2)
 
 	// Create a Clients struct for the battle
 	battleClients := battle.Clients{
-		User: []bluePrint.User{player1, player2},
+		User: []battle.Client{player1, player2},
 	}
 
 	// Conduct the battle

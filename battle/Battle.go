@@ -1,25 +1,142 @@
 package battle
 
 import (
-	"client/bluePrint"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"regexp"
 	"strconv"
+	"time"
 )
 
-type Player bluePrint.Player
-type PokedexType bluePrint.PokedexType
-type Evolution bluePrint.Evolution
-type TypeEffectiveness bluePrint.TypeEffectiveness
-type Pokemon bluePrint.Pokemon
-type Client bluePrint.User
-type Clients bluePrint.UserData
+type Pokemon struct {
+	ID       int
+	Name     struct {
+		English string
+	}
+	Type []string
+	Base struct {
+		HP       int
+		Attack   int
+		Defense  int
+		SpAttack int `json:"Sp. Attack"`
+		SpDefense int `json:"Sp. Defense"`
+		Speed		int
+	}
+	Exp  int
+	Ev	int
+	Level int
+	Alive bool
+	Evolution Evolution `json:"evolution"`
+}
 
-var pokedex = bluePrint.PokeDex
-var typeEffectivenessMap = bluePrint.TypeEffectivenessMap
+type Evolution struct {
+	Next [][]string `json:"next"`
+	Prev []string `json:"prev"`
+}
+
+type TypeEffectiveness struct {
+	English     string   `json:"english"`
+	Effective   []string `json:"effective"`
+	InEffective []string `json:"ineffective"`
+	NoEffect    []string `json:"no_effect"`
+}
+
+type Player struct {
+	ConnAdd string
+	Pokemons []Pokemon
+	Active   int
+}
+
+type Pokedex map[int]Pokemon
+
+type Client struct {
+	ConnAdd     string `json:"connAdd"`
+	ListPokemon []struct {
+		UID string `json:"uid"`
+		ID  int    `json:"id"`
+		Exp int    `json:"exp"`
+		EV  int    `json:"ev"`
+		Lv  int    `json:"lv"`
+	} `json:"listPokemon"`
+	MaxValue  string `json:"maxValue"`
+	PositionX int    `json:"positionX"`
+	PositionY int    `json:"positionY"`
+	SpaceLeft string `json:"spaceLeft"`
+	UID       string `json:"uID"`
+}
+
+type Clients struct {
+	User []Client `json:"user"`
+}
+
+var Pokedexx Pokedex
+var typeEffectivenessMap map[string]TypeEffectiveness
+
+func LoadTypeEffectiveness(filename string) error {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+			return err
+	}
+
+	var types []TypeEffectiveness
+	if err := json.Unmarshal(bytes, &types); err != nil {
+			return err
+	}
+
+	typeEffectivenessMap = make(map[string]TypeEffectiveness)
+	for _, t := range types {
+			typeEffectivenessMap[t.English] = t
+	}
+	return nil
+}
+
+func LoadPokedex(filename string) (Pokedex, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var pokemons []Pokemon // Assuming Pokemon is the struct that matches the JSON structure
+	if err := json.Unmarshal(bytes, &pokemons); err != nil {
+			return nil, err
+	}
+
+	pokedex := make(Pokedex) // Assuming Pokedex is a map[int]Pokemon
+	for _, pokemon := range pokemons {
+			pokedex[pokemon.ID] = pokemon
+	}
+
+	return pokedex, nil
+}
+
+func LoadClients(filename string) (Clients, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return Clients{}, err
+	}
+	defer file.Close()
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return Clients{}, err
+	}
+
+	var clients Clients
+	if err := json.Unmarshal(bytes, &clients); err != nil {
+		return Clients{}, err
+	}
+
+	return clients, nil
+}
 
 func (p *Player) SwitchPokemon(index int) {
 	if index < len(p.Pokemons) && p.Pokemons[index].Alive {
@@ -29,9 +146,9 @@ func (p *Player) SwitchPokemon(index int) {
 
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
-		if s == item {
-			return true
-		}
+			if s == item {
+					return true
+			}
 	}
 	return false
 }
@@ -74,6 +191,7 @@ func (p *Player) Attack(target *Player, attackerID string, defenderID string) {
 	}
 
 	defender.Base.HP -= damage
+	defender.Base.HP -= damage
 	fmt.Printf("%s (Player %s) attacks %s (Player %s) for %d damage.\n", attacker.Name.English, attackerID, defender.Name.English, defenderID, damage)
 
 	if defender.Base.HP <= 0 {
@@ -93,6 +211,7 @@ func (p *Player) LevelUp(exp int, level int) (int, int) {
 	for i := 1; i < level; i++ {
 		expToLevelUp *= 2
 	}
+	// fmt.Printf("Exp to level up to level %d: %d\n", level+1, expToLevelUp)
 
 	if exp >= expToLevelUp {
 		return p.LevelUp(exp-expToLevelUp, level+1)
@@ -102,15 +221,18 @@ func (p *Player) LevelUp(exp int, level int) (int, int) {
 }
 
 func (p *Player) CheckEvolution(pokemon *Pokemon) {
-	if evolution, exists := pokedex[pokemon.ID]; exists {
+	// Assuming pokedex is a global variable or passed to this function
+	if evolution, exists := Pokedexx[pokemon.ID]; exists {
 		for _, next := range evolution.Evolution.Next {
 			nextID := next[0]
 			condition := next[1]
 
+			// Use regex to check if the condition is level-based or item-based
 			levelRe := regexp.MustCompile(`\d+`)
 			itemRe := regexp.MustCompile(`use (.+)`)
 
 			if levelRe.MatchString(condition) {
+				// Level-based evolution
 				levelStr := levelRe.FindString(condition)
 				requiredLevel, err := strconv.Atoi(levelStr)
 				if err != nil {
@@ -123,17 +245,20 @@ func (p *Player) CheckEvolution(pokemon *Pokemon) {
 						fmt.Printf("Error converting next Pokemon ID: %v\n", err)
 						continue
 					}
-					if nextPokemon, exists := pokedex[nextPokemonID]; exists {
+					if nextPokemon, exists := Pokedexx[nextPokemonID]; exists {
 						currentName := pokemon.Name.English
+						// Perform evolution
 						pokemon.ID = nextPokemon.ID
 						pokemon.Name = nextPokemon.Name
 						pokemon.Base = nextPokemon.Base
-						fmt.Printf("%s has evolved into %s!\n", currentName, nextPokemon.Name.English)
+						fmt.Printf("%s has evolved into %s!\n", currentName,nextPokemon.Name.English)
 					}
 				}
 			} else if matches := itemRe.FindStringSubmatch(condition); matches != nil {
+				// Item-based evolution
 				item := matches[1]
 				fmt.Printf("%s needs to use %s to evolve.\n", pokemon.Name.English, item)
+				// Here you can add logic to handle item-based evolution if needed
 			} else {
 				fmt.Printf("Unknown evolution condition: %s\n", condition)
 			}
@@ -142,23 +267,16 @@ func (p *Player) CheckEvolution(pokemon *Pokemon) {
 }
 
 func InitializePlayer(client Client) Player {
-	var connAdd string = client.ConnAdd
-	var pokemons []bluePrint.Pokemon
+	var pokemons []Pokemon
 	for _, p := range client.ListPokemon {
-		blueprintPokemon := pokedex[p.ID]
-		pokemon := bluePrint.Pokemon{
-			ID:     blueprintPokemon.ID,
-			Name:   blueprintPokemon.Name,
-			Type:   blueprintPokemon.Type,
-			Base:   blueprintPokemon.Base,
-			Level:  p.Lv,
-			Exp:    p.Exp,
-			Ev:     p.EV,
-			Alive:  true,
-		}
+		pokemon := Pokedexx[p.ID]
+		pokemon.Level = p.Lv
+		pokemon.Exp = p.Exp
+		pokemon.Ev = p.EV
+		pokemon.Alive = true
 		pokemons = append(pokemons, pokemon)
 	}
-	return Player{ConnAdd: connAdd, Pokemons: pokemons, Active: 0}
+	return Player{Pokemons: pokemons, Active: 0}
 }
 
 func Battle(clients Clients) {
@@ -167,15 +285,25 @@ func Battle(clients Clients) {
 		return
 	}
 
-	player1 := InitializePlayer(Client(clients.User[0]))
-	player2 := InitializePlayer(Client(clients.User[1]))
+	// Randomly select two distinct players
+	rand.Seed(time.Now().UnixNano())
+	index1 := rand.Intn(len(clients.User))
+	index2 := index1
+	for index2 == index1 {
+		index2 = rand.Intn(len(clients.User))
+	}
 
-	fmt.Printf("Player 1: %v\n", player1.ConnAdd)
-	fmt.Printf("Player 2: %v\n", player2.ConnAdd)
+	player1 := InitializePlayer(clients.User[index1])
+	player2 := InitializePlayer(clients.User[index2])
+
+	// DEBUG: Print the initial state of the players
+	fmt.Printf("Player 1: %v\n", player1)
+	fmt.Printf("Player 2: %v\n", player2)
 
 	player1Wins := 0
 	player2Wins := 0
 
+	// Best-of-three matches, each round using a different Pokémon from the first 3
 	for round := 0; round < 3; round++ {
 		fmt.Printf("\nRound %d:\n", round+1)
 		winner := conductMatch(&player1, &player2, round)
@@ -187,13 +315,16 @@ func Battle(clients Clients) {
 
 		fmt.Printf("Player 1 wins: %d, Player 2 wins: %d\n", player1Wins, player2Wins)
 
+		// Check if either player has won two matches
 		if player1Wins == 2 || player2Wins == 2 {
 			break
 		}
 	}
 
+	// Break line for better readability
 	fmt.Println("--------------------")
 
+	// Determine the overall winner and calculate experience
 	var winner, loser *Player
 	if player1Wins > player2Wins {
 		fmt.Printf("Player 1 wins the battle!\n")
@@ -205,16 +336,18 @@ func Battle(clients Clients) {
 		loser = &player1
 	}
 
+	// Calculate total experience from the loser's Pokémon
 	fmt.Printf("\nGaining experience...\n")
 	totalExp := 100
 	for _, pokemon := range loser.Pokemons {
 		totalExp += pokemon.Level * 100
-		for i := 1; i < pokemon.Level; i++ {
+		for i :=1; i < pokemon.Level; i++ {
 			totalExp = int(float64(totalExp) * 1.5)
 		}
 	}
 	fmt.Printf("Total experience gained: %d\n", totalExp)
 
+	// Distribute experience to the winner's Pokémon
 	expPerPokemon := totalExp / len(winner.Pokemons)
 
 	for i := range winner.Pokemons {
@@ -224,42 +357,22 @@ func Battle(clients Clients) {
 		newLevel, remainingExp := winner.LevelUp(winner.Pokemons[i].Exp, winner.Pokemons[i].Level)
 		winner.Pokemons[i].Level = newLevel
 		winner.Pokemons[i].Exp = remainingExp
-
+		
 		fmt.Printf("%s level up from %d to %d\n", winner.Pokemons[i].Name.English, currentLevel, newLevel)
 
+		// Check for evolution
 		fmt.Printf("\nChecking for evolution...\n")
-		winner.CheckEvolution((*Pokemon)(&winner.Pokemons[i]))
+		winner.CheckEvolution(&winner.Pokemons[i])
 
+		// Break line for better readability
 		fmt.Println("--------------------")
 	}
 
+
+
+	// Notify about evolutions and end the battle
 	for _, pokemon := range winner.Pokemons {
 		fmt.Printf("%s is now level %d.\n", pokemon.Name.English, pokemon.Level)
-	}
-
-	// Update battle state in battle.json
-	battleState := map[string]interface{}{
-		"winner": winner.ConnAdd,
-		"loser":  loser.ConnAdd,
-		"player1": map[string]interface{}{
-			"connAdd": player1.ConnAdd,
-			"pokemons": player1.Pokemons,
-		},
-		"player2": map[string]interface{}{
-			"connAdd": player2.ConnAdd,
-			"pokemons": player2.Pokemons,
-		},
-	}
-
-	data, err := json.MarshalIndent(battleState, "", "  ")
-	if err != nil {
-		fmt.Printf("Error marshalling battle state: %v\n", err)
-		return
-	}
-
-	err = ioutil.WriteFile("storeFile/battle.json", data, 0644)
-	if err != nil {
-		fmt.Printf("Error writing battle state to file: %v\n", err)
 	}
 }
 

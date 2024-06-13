@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"client/PokerPos"
-	"client/bluePrint"
+	"client/battle"
 	"client/connectionWorld"
 	"client/intruction"
 	"encoding/json"
@@ -72,7 +72,7 @@ func main() {
 		return
 	}
 
-	bluePrint.PokeDex, err = bluePrint.LoadPokedex("pokedex.json")
+	battle.Pokedexx, err = battle.LoadPokedex("pokedex.json")
 	if err != nil {
 		fmt.Println("Error loading pokedex:", err)
 		return
