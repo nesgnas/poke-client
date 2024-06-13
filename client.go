@@ -5,6 +5,7 @@ import (
 	"client/PokerPos"
 	"client/bluePrint"
 	"client/connectionWorld"
+	"client/intruction"
 	"encoding/json"
 	"fmt"
 	"image/color"
@@ -247,6 +248,8 @@ func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 		//Update PokerPlayerPos
 		//go IsChangedPokerPos(connectionWorld.Conn)
 		//PokerPos.UpdatePokerPos(PokerPos.FilePos, 0, connectionWorld.PlayerX, connectionWorld.PlayerY, "")
+
+		intruction.NoticePosition(connectionWorld.Conn)
 
 		fmt.Println("PLAYER POSITION ~~~~ After####", connectionWorld.PlayerX, connectionWorld.PlayerY)
 

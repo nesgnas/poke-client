@@ -24,5 +24,6 @@ func initiateConnectionWorld(conn net.Conn) {
 
 func checkChannelAction(mess string) {
 	parts := strings.SplitN(mess, " ", 2)
+
 	fmt.Println(parts)
 }
