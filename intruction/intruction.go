@@ -16,6 +16,6 @@ func NoticePosition(conn net.Conn) {
 
 	message := fmt.Sprintf("%s %s %s %d %d", param, channel, address, playerX, playerY)
 
-	connectionWorld.SendMessage(conn, message)
-	connectionWorld.ListenForMessages(conn)
+	go connectionWorld.SendMessage(conn, message)
+	go connectionWorld.ListenForMessages(conn)
 }
