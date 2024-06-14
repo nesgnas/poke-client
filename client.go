@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"client/PokerPos"
 	"client/battle"
+	"client/bluePrint"
 	"client/connectionWorld"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
+	"io/ioutil"
+	"log"
 	"net"
 	"os"
 )
@@ -206,15 +209,33 @@ func readMap(filename string) ([][]rune, error) {
 func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 	newX, newY := connectionWorld.PlayerX, connectionWorld.PlayerY
 
-	switch key.Name {
-	case fyne.KeyW:
-		newY--
-	case fyne.KeyS:
-		newY++
-	case fyne.KeyA:
-		newX--
-	case fyne.KeyD:
-		newX++
+	//switch key.Name {
+	//case fyne.KeyW:
+	//	newY = newY
+	//case fyne.KeyS:
+	//	newY = newY
+	//case fyne.KeyA:
+	//	newY = newY
+	//case fyne.KeyD:
+	//	newY = newY
+	//}
+
+	data, err := ioutil.ReadFile("clients.json")
+	if err != nil {
+		log.Fatalf("Error reading clients.json: %v", err)
+	}
+
+	var users bluePrint.UserData
+	if err := json.Unmarshal(data, &users); err != nil {
+		log.Fatalf("Error unmarshaling JSON: %v", err)
+	}
+
+	for _, user := range users.User {
+		if user.ConnAdd == connectionWorld.LocalAddress {
+			fmt.Println(user.PositionX, user.PositionY)
+			newX, newY = user.PositionX, user.PositionY
+		}
+
 	}
 
 	fmt.Println("LOCAL ADDRESS ~~~~ ####", connectionWorld.LocalAddress)

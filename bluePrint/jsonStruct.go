@@ -44,8 +44,7 @@ func ReadUser(fileName string) {
 		return
 	}
 
-	// Extract connection addresses
-	//for _, user := range Data.Users {
+	//for _, user := range Data.User {
 	//	fmt.Println("User:", user.UID)
 	//	fmt.Println("Connection Address:", user.ConnAdd)
 	//	fmt.Println("Position:", user.PositionX, user.PositionY)
