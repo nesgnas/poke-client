@@ -67,3 +67,36 @@ func ReadBattleState(fileName string, state interface{}) error {
 	}
 	return json.Unmarshal(data, state)
 }
+
+var WorldData PokemonWorldData
+
+type PokemonWorld struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Location   string `json:"location"`
+	PowerLevel int    `json:"powerLevel"`
+}
+
+type PokemonWorldData struct {
+	Pokemons []PokemonWorld `json:"pokemons"`
+}
+
+func ReadPokemonWorld(fileName string) {
+	file, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
+
+	if err := json.Unmarshal(file, &WorldData); err != nil {
+		fmt.Println("Error parsing JSON:", err)
+		return
+	}
+
+	for _, pokemon := range WorldData.Pokemons {
+		fmt.Println("Pokemon:", pokemon.Name)
+		fmt.Println("Location:", pokemon.Location)
+		fmt.Println("Power Level:", pokemon.PowerLevel)
+		fmt.Println("------------------------------")
+	}
+}

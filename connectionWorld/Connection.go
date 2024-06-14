@@ -67,10 +67,14 @@ func ListenForMessages(conn net.Conn) {
 			messageToRepeat := strings.TrimPrefix(receivedMessage, "REPEAT ")
 
 			switch {
-			case strings.HasPrefix(messageToRepeat, "GET "):
+			case strings.HasPrefix(messageToRepeat, "GET clients.json "):
 				SendMessage(conn, messageToRepeat)
 				waitForJSONResponse(conn, messageToRepeat)
 				bluePrint.ReadUser("clients.json")
+			case strings.HasPrefix(messageToRepeat, "GET PokemonWorld.json"):
+				SendMessage(conn, messageToRepeat)
+				waitForJSONResponse(conn, messageToRepeat)
+				bluePrint.ReadPokemonWorld("PokemonWorld.json")
 			default:
 				SendMessage(conn, messageToRepeat)
 			}
@@ -148,10 +152,10 @@ func waitForJSONResponse(conn net.Conn, fileName string) {
 				fmt.Printf("Error writing to file: %v\n", err)
 				return
 			}
-			//fmt.Println("JSON data saved to", parts[1])
+			fmt.Println("JSON data saved to", parts[1])
 			break
 		} else {
-			//fmt.Println("Received:", text)
+			fmt.Println("Received:", text)
 		}
 	}
 	if err := scanner.Err(); err != nil {
