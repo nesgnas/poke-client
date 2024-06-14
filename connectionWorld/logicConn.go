@@ -12,7 +12,7 @@ import (
 var (
 	PrePokerPosX int = 0
 	PrePokerPosY int = 0
-	PartString []string
+	PartString   []string
 )
 
 func initiateConnectionWorld(conn net.Conn) {
@@ -27,11 +27,7 @@ func initiateConnectionWorld(conn net.Conn) {
 }
 
 func checkChannelAction(mess string) {
-	fmt.Println("Trigger")
 	PartString = strings.SplitN(mess, " ", 3)
-	fmt.Println(PartString[0])
-	fmt.Println(PartString[1])
-	fmt.Println(PartString[2])
 	if len(PartString) > 1 && strings.HasPrefix(PartString[2], "BATTLE_START") {
 		handleBattleMessage(PartString[2])
 	}
@@ -49,7 +45,7 @@ func handleBattleMessage(message string) {
 	player2ConnAdd := PartString[2]
 
 	// Read the clients data from the store file
-	clients ,err := battle.LoadClients("clients.json")
+	clients, err := battle.LoadClients("clients.json")
 	if err != nil {
 		fmt.Printf("Error reading clients data: %v\n", err)
 		return
@@ -88,11 +84,11 @@ func handleBattleMessage(message string) {
 		"winner": player1Data.ConnAdd,
 		"loser":  player2Data.ConnAdd,
 		"player1": map[string]interface{}{
-			"connAdd": player1Data.ConnAdd,
+			"connAdd":  player1Data.ConnAdd,
 			"pokemons": player1Data.Pokemons,
 		},
 		"player2": map[string]interface{}{
-			"connAdd": player2Data.ConnAdd,
+			"connAdd":  player2Data.ConnAdd,
 			"pokemons": player2Data.Pokemons,
 		},
 	}
@@ -102,5 +98,3 @@ func handleBattleMessage(message string) {
 		fmt.Printf("Error updating battle state: %v\n", err)
 	}
 }
-
-
