@@ -9,20 +9,21 @@ import (
 var Data UserData
 
 type User struct {
-	ConnAdd string `json:"connAdd"`
-	// ListPokemon []string `json:"listPokemon"`
-	ListPokemon []struct {
-		UID string  `json:"uid"`
-		ID  int     `json:"id"`
-		Exp int     `json:"exp"`
-		EV  float64 `json:"ev"`
-		Lv  int     `json:"lv"`
-	} `json:"listPokemon"`
-	MaxValue  string `json:"maxValue"`
-	PositionX int    `json:"positionX"`
-	PositionY int    `json:"positionY"`
-	SpaceLeft string `json:"spaceLeft"`
-	UID       string `json:"uID"`
+	ConnAdd     string      `json:"connAdd"`
+	ListPokemon [][]Pokemon `json:"listPokemon"` // Change type to [][]Pokemon
+	MaxValue    string      `json:"maxValue"`
+	PositionX   int         `json:"positionX"`
+	PositionY   int         `json:"positionY"`
+	SpaceLeft   string      `json:"spaceLeft"`
+	UID         string      `json:"uID"`
+}
+
+type Pokemon struct {
+	UID string  `json:"uid"`
+	ID  int     `json:"id"`
+	Exp int     `json:"exp"`
+	EV  float64 `json:"ev"`
+	Lv  int     `json:"lv"`
 }
 
 type UserData struct {
