@@ -209,16 +209,16 @@ func readMap(filename string) ([][]rune, error) {
 func movePlayer(key *fyne.KeyEvent, a fyne.App) {
 	newX, newY := connectionWorld.PlayerX, connectionWorld.PlayerY
 
-	//switch key.Name {
-	//case fyne.KeyW:
-	//	newY = newY
-	//case fyne.KeyS:
-	//	newY = newY
-	//case fyne.KeyA:
-	//	newY = newY
-	//case fyne.KeyD:
-	//	newY = newY
-	//}
+	switch key.Name {
+	case fyne.KeyW:
+		newY = newY
+	case fyne.KeyS:
+		newY = newY
+	case fyne.KeyA:
+		newY = newY
+	case fyne.KeyD:
+		newY = newY
+	}
 
 	data, err := ioutil.ReadFile("clients.json")
 	if err != nil {

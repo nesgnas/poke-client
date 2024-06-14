@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	fyne.io/fyne/v2 v2.4.5
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6
 )
 
@@ -21,7 +22,6 @@ require (
 	github.com/go-text/typesetting v0.1.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
