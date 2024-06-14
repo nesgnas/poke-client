@@ -148,7 +148,7 @@ func waitForJSONResponse(conn net.Conn, fileName string) {
 				fmt.Printf("Error writing to file: %v\n", err)
 				return
 			}
-			fmt.Println("JSON data saved to", parts[1])
+			//fmt.Println("JSON data saved to", parts[1])
 			break
 		} else {
 			//fmt.Println("Received:", text)
