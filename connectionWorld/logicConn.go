@@ -93,7 +93,7 @@ func handleBattleMessage(message string) {
 		},
 	}
 
-	err = bluePrint.UpdateBattleState("storeFile/battle.json", battleState)
+	err = bluePrint.UpdateBattleState("battle.json", battleState)
 	if err != nil {
 		fmt.Printf("Error updating battle state: %v\n", err)
 	}
