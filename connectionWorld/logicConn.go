@@ -27,9 +27,13 @@ func initiateConnectionWorld(conn net.Conn) {
 }
 
 func checkChannelAction(mess string) {
-	PartString = strings.SplitN(mess, " ", 2)
-	if len(PartString) > 1 && strings.HasPrefix(PartString[1], "BATTLE_START") {
-		handleBattleMessage(PartString[1])
+	fmt.Println("Trigger")
+	PartString = strings.SplitN(mess, " ", 3)
+	fmt.Println(PartString[0])
+	fmt.Println(PartString[1])
+	fmt.Println(PartString[2])
+	if len(PartString) > 1 && strings.HasPrefix(PartString[2], "BATTLE_START") {
+		handleBattleMessage(PartString[2])
 	}
 }
 
