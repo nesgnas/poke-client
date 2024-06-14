@@ -26,7 +26,7 @@ type Pokemon struct {
 		Speed		int
 	}
 	Exp  int
-	Ev	int
+	Ev	float64
 	Level int
 	Alive bool
 	Evolution Evolution `json:"evolution"`
@@ -52,15 +52,17 @@ type Player struct {
 
 type Pokedex map[int]Pokemon
 
+type PokemonClient struct {
+	UID string  `json:"uid"`
+	ID  int     `json:"id"`
+	Exp int     `json:"exp"`
+	EV  float64 `json:"ev"`
+	Lv  int     `json:"lv"`
+}
+
 type Client struct {
 	ConnAdd     string `json:"connAdd"`
-	ListPokemon []struct {
-		UID string `json:"uid"`
-		ID  int    `json:"id"`
-		Exp int    `json:"exp"`
-		EV  int    `json:"ev"`
-		Lv  int    `json:"lv"`
-	} `json:"listPokemon"`
+	ListPokemon [][]PokemonClient `json:"listPokemon"`
 	MaxValue  string `json:"maxValue"`
 	PositionX int    `json:"positionX"`
 	PositionY int    `json:"positionY"`
@@ -268,13 +270,15 @@ func (p *Player) CheckEvolution(pokemon *Pokemon) {
 
 func InitializePlayer(client Client) Player {
 	var pokemons []Pokemon
-	for _, p := range client.ListPokemon {
-		pokemon := Pokedexx[p.ID]
-		pokemon.Level = p.Lv
-		pokemon.Exp = p.Exp
-		pokemon.Ev = p.EV
-		pokemon.Alive = true
-		pokemons = append(pokemons, pokemon)
+	for _, pokemonList := range client.ListPokemon {
+		for _, p := range pokemonList {
+			pokemon := Pokedexx[p.ID]
+			pokemon.Level = p.Lv
+			pokemon.Exp = p.Exp
+			pokemon.Ev = p.EV
+			pokemon.Alive = true
+			pokemons = append(pokemons, pokemon)
+		}
 	}
 	return Player{Pokemons: pokemons, Active: 0}
 }
